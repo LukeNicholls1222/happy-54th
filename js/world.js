@@ -4,17 +4,17 @@
   const W = 240, H = 320, GY = 250;
 
   // ---------- 家族 ----------
-  // 並び順は左から。お父さんが真ん中で、ラブラドールを連れている。
+  // 並び順は左から。お父さんが真ん中で、ラブラドールのライダーを連れている。
   const FAMILY = [
-    { key: 'bro', name: 'おにいちゃん', cm: 180, build: 1, hair: 'short', hairColor: '#111',
+    { key: 'bro', name: 'おにいちゃん', nameEn: 'Big Bro', cm: 180, build: 1, hair: 'short', hairColor: '#111',
       top: '#262626', pants: '#141414', shoes: '#000', prop: 'laptop', slot: 36, phase: 5 },
-    { key: 'mom', name: 'おかあさん', cm: 170, build: 0, hair: 'bobLong', hairColor: '#111',
+    { key: 'mom', name: 'おかあさん', nameEn: 'Mom', cm: 170, build: 0, hair: 'bobLong', hairColor: '#111',
       top: '#262626', pants: '#141414', shoes: '#000', prop: 'broom', slot: 70, phase: 9 },
-    { key: 'dad', name: 'おとうさん', cm: 185, build: 2, hair: 'helmet', hairColor: '#2a2a2a', gray: true,
+    { key: 'dad', name: 'おとうさん', nameEn: 'Dad', cm: 185, build: 2, hair: 'helmet', hairColor: '#2a2a2a', gray: true,
       top: '#8c8c8c', pants: '#1a1a1a', shoes: '#000', prop: 'dog', slot: 110, phase: 0 },
-    { key: 'boy', name: 'おとうと', cm: 179, build: 0, baggy: 2, hair: 'centerPart', hairColor: '#111',
+    { key: 'boy', name: 'おとうと', nameEn: 'Little Bro', cm: 179, build: 0, baggy: 2, hair: 'centerPart', hairColor: '#111',
       top: '#5a3ad0', top2: '#3a2090', pants: '#1a1a1a', shoes: '#000', prop: 'skis', slot: 166, phase: 3 },
-    { key: 'sis', name: 'いもうと', cm: 160, build: 0, baggy: 1, hair: 'long', hairColor: '#8a4a1a',
+    { key: 'sis', name: 'いもうと', nameEn: 'Sis', cm: 160, build: 0, baggy: 1, hair: 'long', hairColor: '#8a4a1a',
       top: '#222', top2: '#111', pants: '#4a70b8', shoes: '#000', prop: null, slot: 204, phase: 12 },
   ];
 

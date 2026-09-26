@@ -74,6 +74,10 @@
       }
     },
   };
+  applyI18n();
+  const langLabel = () => { $('btn-lang').textContent = T('langBtn'); };
+  langLabel();
+  $('btn-lang').onclick = () => { setLang(LANG === 'ja' ? 'en' : 'ja'); langLabel(); };
   $('btn-sound').onclick = () => { soundOn = !soundOn; $('btn-sound').textContent = soundOn ? '♪ ON' : '♪ OFF'; if (soundOn) { ensureAudio(); SFX.coin(); } };
 
   // ---------- 状態 ----------
@@ -128,7 +132,7 @@
       const dir = Math.sign(a.sp.slot - a.x);
       a.x += dir * a.speed;
       if (f % 4 === 0) SFX.step();
-      if (Math.abs(a.sp.slot - a.x) <= a.speed) { a.x = a.sp.slot; a.walking = false; a.shown = true; introWait = 14; $('namebox').textContent = a.sp.name; $('namebox').classList.add('show'); Wd.coin(a.x - 6, Wd.GY - 60); SFX.coin(); }
+      if (Math.abs(a.sp.slot - a.x) <= a.speed) { a.x = a.sp.slot; a.walking = false; a.shown = true; introWait = 14; $('namebox').textContent = nameOf(a.sp); $('namebox').classList.add('show'); Wd.coin(a.x - 6, Wd.GY - 60); SFX.coin(); }
     } else if (--introWait <= 0) nextEntrant();
   }
   function drawFamily(skipHidden) {
@@ -178,7 +182,7 @@
   }
   function updateCandleUI() {
     const left = candles.filter((c) => c.lit).length;
-    $('candle-left').textContent = left ? `のこり ${left}` : 'ぜんぶ きえた!';
+    $('candle-left').textContent = left ? T('candlesLeft', left) : T('candlesDone');
     $('breath').style.width = `${Math.min(100, charge * 100)}%`;
   }
   function blow() {
@@ -223,7 +227,6 @@
 
   // ---------- 年齢クイズ ----------
   const AGE = CFG.age || 54;
-  const WRONG = ['ざんねん!', 'もういちど。', 'よく かんがえて。', `ヒント: ${AGE - 1} の つぎ`, `${AGE} さい!`];
   let wrongCount = 0, quizDoneWait = 0;
   function startQuiz() {
     state = 'quiz'; show('s-quiz'); wrongCount = 0; quizDoneWait = 0;
@@ -239,13 +242,13 @@
     if (quizDoneWait) return;
     const a = $('quiz-answer');
     if (n === AGE) {
-      a.textContent = `せいかい! ${n} さい おめでとう!`;
+      a.textContent = T('correct', n);
       SFX.fanfare(); Wd.confetti(80);
       for (let i = 0; i < 6; i++) setTimeout(() => Wd.coin(90 + i * 12, 200, `+${AGE}`), i * 80);
       quizDoneWait = 40;
       Array.from($('choices').children).forEach((b) => { if (b !== btn) b.classList.add('no'); });
     } else {
-      a.textContent = WRONG[Math.min(wrongCount, WRONG.length - 1)]; wrongCount++;
+      const WRONG = T('wrong', AGE); a.textContent = WRONG[Math.min(wrongCount, WRONG.length - 1)]; wrongCount++;
       a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake');
       btn.classList.add('no'); SFX.wrong();
     }
@@ -257,7 +260,7 @@
   function startEnd() {
     state = 'end'; show('s-end');
     const m = $('message'); m.innerHTML = '';
-    const lines = CFG.message || [];
+    const lines = LOC(CFG.message) || [];
     const ps = lines.map(() => { const p = document.createElement('p'); m.appendChild(p); return p; });
     let li = 0, k = 0;
     const tm = setInterval(() => {
@@ -265,7 +268,7 @@
       ps[li].textContent = lines[li].slice(0, ++k);
       if (k >= lines[li].length) { li++; k = 0; }
     }, 55);
-    $('from').textContent = CFG.from || '';
+    $('from').textContent = LOC(CFG.from) || '';
     $('result').textContent = result ? `COIN ${result.coins}/${AGE}  SCORE ${String(result.score).padStart(6, '0')}` : '';
     const badges = [];
     if (result && result.coins >= AGE) badges.push('★ PERFECT ★');
@@ -284,7 +287,7 @@
     // 横断幕
     ctx.fillStyle = '#000'; ctx.fillRect(30, 262, 180, 26);
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#f8b800'; ctx.font = '10px "DotGothic16"'; ctx.fillText(`${CFG.name || 'おとうさん'}`, 120, 274);
+    ctx.fillStyle = '#f8b800'; ctx.font = '10px "DotGothic16"'; ctx.fillText(`${LOC(CFG.name) || nameOf(actors[STAR].sp)}`, 120, 274);
     ctx.fillStyle = '#fff'; ctx.font = '9px "Press Start 2P"'; ctx.fillText(`${CFG.date || '10.2'}  ${AGE}`, 120, 284);
     ctx.textAlign = 'left';
   }

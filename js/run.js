@@ -1,6 +1,6 @@
 // 横スクロールのステージ「WORLD 10-2」。
 // お父さんが自動で走り、タップでジャンプ。マウンテンバイク → サーフィン → スノーボード → ゴルフと
-// 乗り物と景色が変わる。ラブラドールはずっと一緒に走る。？ブロックから家族が出てきて後ろにつく。
+// 乗り物と景色が変わる。ラブラドールのライダーはずっと一緒に走る。？ブロックから家族が出てきて後ろにつく。
 // 最後はゴルフのグリーンでパット（タイミングでショット）してカップインしたらクリア。
 // 物理は60Hzで回す（12fpsだとジャンプがカクつく）。
 (function () {
@@ -15,23 +15,40 @@
     const GREEN = 3000;              // ここに着いたらゴルフ
     const BODY = 50;                 // 足元から頭のてっぺんまで（乗り物なし）
     const FAM = Object.fromEntries(Wd.FAMILY.map((s) => [s.key, s]));
-    const LINES = Object.assign({ mom: 'いつも ありがとう', bro: 'おめでとう!', boy: 'おめでとう!', sis: 'おめでとう!' }, CFG.familyLines || {});
+    const line1 = (k) => (LOC(CFG.familyLines) || {})[k] || T('cheerMain');
+    const DOG = () => LOC(CFG.dogName) || 'Rider';
 
     // ---------- エリア ----------
     const ZONES = [
-      { x: 0, k: 'mtb', title: 'MOUNTAIN BIKE', jp: 'マウンテンバイク', speed: 2.0, vh: 10 },
-      { x: 900, k: 'surf', title: 'SURFING', jp: 'サーフィン', speed: 1.8, vh: 3 },
-      { x: 1800, k: 'snow', title: 'SNOWBOARD', jp: 'スノーボード', speed: 2.2, vh: 3 },
-      { x: 2700, k: 'golf', title: 'GOLF', jp: 'ゴルフ', speed: 1.5, vh: 0 },
+      { x: 0, k: 'mtb', title: 'MOUNTAIN BIKE', speed: 2.0, vh: 10 },
+      { x: 900, k: 'surf', title: 'SURFING', speed: 1.8, vh: 3 },
+      { x: 1800, k: 'snow', title: 'SNOWBOARD', speed: 2.2, vh: 3 },
+      { x: 2700, k: 'golf', title: 'GOLF', speed: 1.5, vh: 0 },
     ];
     const zoneAt = (wx) => { let z = ZONES[0]; ZONES.forEach((q) => { if (wx >= q.x) z = q; }); return z; };
-    const LOOK = {
-      mtb: {},
-      surf: { hair: 'short', top: '#1a1a1a', pants: '#1a1a1a', shoes: '#f8c090' },
-      snow: { helmetColor: '#303030', goggles: true, top: '#f87800', pants: '#2a3a6a' },
-      golf: { hair: 'cap', top: '#f8f8f8', pants: '#c8b890', shoes: '#fff' },
-    };
-    const dadLook = (k) => ({ ...FAM.dad, prop: null, ...LOOK[k] });
+    // 種目ごとの服装。家族はそれぞれの色で見分ける
+    const TEAM = { dad: '#d82800', mom: '#e8508a', bro: '#2868d8', boy: '#7a4ae0', sis: '#18a8a0' };
+    const POLO = { dad: '#f8f8f8', mom: '#f8d0e0', bro: '#d0e0f8', boy: '#e0d8f8', sis: '#c8f0e8' };
+    const SKIN = SPR.SKIN;
+    function look(sp, k) {
+      const c = TEAM[sp.key] || '#d82800';
+      const base = { ...sp, prop: null, baggy: 0 };
+      if (sp.key === 'dad') {
+        if (k === 'mtb') return base;
+        if (k === 'surf') return { ...base, hair: 'short', top: '#1a1a1a', pants: '#1a1a1a', shoes: SKIN };
+        if (k === 'snow') return { ...base, helmetColor: '#303030', goggles: true, top: '#f87800', pants: '#2a3a6a' };
+        return { ...base, hair: 'cap', top: POLO.dad, pants: '#c8b890', shoes: '#fff' };
+      }
+      // マウンテンバイク：ヘルメットとジャージ
+      if (k === 'mtb') return { ...base, hair: 'helmet', helmetColor: c, top: c, pants: '#1a1a1a', shoes: '#000' };
+      // サーフィン：ラッシュガードに黒のウェットスーツ、はだし
+      if (k === 'surf') return { ...base, top: c, pants: '#1a1a1a', shoes: SKIN };
+      // スノーボード：ヘルメットとゴーグル、ウェア
+      if (k === 'snow') return { ...base, hair: 'helmet', helmetColor: '#f0f0f0', goggles: true, top: c, pants: '#2a2a2a' };
+      // ゴルフ：キャップとポロシャツ
+      return { ...base, hair: 'cap', capColor: c, top: POLO[sp.key] || '#fff', pants: '#f0f0f0', shoes: '#fff' };
+    }
+    const dadLook = (k) => look(FAM.dad, k);
 
     let S, L;
 
@@ -89,7 +106,7 @@
       b.used = true;
       if (b.key === 'bone') {
         S.magnet = 540; SFX.up(); SFX.bark();
-        o.say('ほね をゲット!\nラブが コインを あつめてくる!');
+        o.say(T('bone', DOG()));
         return;
       }
       const sp = FAM[b.key];
@@ -97,14 +114,14 @@
       S.score += 1000;
       Wd.coin(b.x - S.camX, b.y - 6, '1000');
       S.followers.push({ key: b.key, sp, x: b.x - S.camX + 8, y: b.y, vy: -3, landed: false });
-      o.say(`${sp.name} が なかまに なった!\n「${LINES[b.key]}」`);
+      o.say(T('joined', nameOf(sp), line1(b.key)));
     }
     function hurt() {
       const lose = Math.min(2, S.coins);
       S.coins -= lose; S.inv = 90; S.shake = 10;
       SFX.hurt();
       for (let i = 0; i < lose; i++) Wd.coin(DADX - 4 + i * 8, S.y - 30);
-      o.say(lose ? `いたっ! コイン -${lose}` : 'いたっ!');
+      o.say(T('ouch', lose));
     }
     function kill(e) {
       e.alive = false; e.dead = 24;
@@ -115,7 +132,7 @@
     }
     function getCoin(c) {
       c.got = true; S.coins++; S.score += 200; SFX.coin();
-      if (S.coins === AGE) { o.say(`コイン ${AGE}まい コンプリート!`); Wd.confetti(40); }
+      if (S.coins === AGE) { o.say(T('complete', AGE)); Wd.confetti(40); }
     }
 
     // ---------- 1ステップ（60Hz） ----------
@@ -138,7 +155,7 @@
       if (z !== S.zone) {
         S.zone = z; S.banner = 100; SFX.up();
         Wd.burst(DADX, S.y - 20, 24);
-        o.say(`${z.jp}!`);
+        o.say(T('zone')[z.k]);
       }
       const HEAD = BODY + z.vh;
       let nx = S.camX + z.speed;
@@ -172,7 +189,7 @@
         });
       }
 
-      // コイン。ほねを取ったあとはラブが近くのコインを引き寄せる
+      // コイン。ほねを取ったあとはライダーが近くのコインを引き寄せる
       L.coins.forEach((c) => {
         if (c.got) return;
         if (S.magnet > 0) {
@@ -201,7 +218,7 @@
       if (++S.tAcc >= 24) { S.tAcc = 0; if (S.time > 0) S.time--; }
       S.hist.push(S.y); if (S.hist.length > 120) S.hist.shift();
 
-      if (wx >= GREEN) { S.phase = 'arrive'; S.t = 0; S.magnet = 0; S.inv = 0; BGM.stop(); SFX.clear(); o.say('グリーンに とうちゃく!'); }
+      if (wx >= GREEN) { S.phase = 'arrive'; S.t = 0; S.magnet = 0; S.inv = 0; BGM.stop(); SFX.clear(); o.say(T('green')); }
     }
 
     // グリーンに着いたら残りタイムを点数に変えて、ゴルフへ
@@ -226,7 +243,7 @@
     function startGolf() {
       S.phase = 'golf'; S.t = 0; S.y = GY;
       S.golf = { st: 'aim', t: 0, p: 0, tries: 0, bx: TEE + 6, v: 0, drop: 0, msg: '' };
-      o.say('さいごは パット!\nタップで ショット');
+      o.say(T('putt'));
     }
     function golfPress() {
       const G = S.golf;
@@ -246,8 +263,8 @@
         if (prev < HOLE && G.bx >= HOLE - 1 && G.v < lim) return cupIn();
         if (G.v <= 0) {
           if (Math.abs(G.bx - HOLE) < 4) return cupIn();
-          miss('もうすこし!');
-        } else if (G.bx > W + 10) miss('つよすぎ!');
+          miss(T('short'));
+        } else if (G.bx > W + 10) miss(T('long'));
       } else if (G.st === 'miss') {
         if (G.t > 70) { G.st = 'aim'; G.t = 0; G.bx = TEE + 6; }
       } else if (G.st === 'in') {
@@ -258,7 +275,7 @@
     }
     function miss(text) {
       const G = S.golf; G.st = 'miss'; G.t = 0;
-      SFX.wrong(); o.say(G.tries >= 2 ? `${text}\nつぎは カップが ちょっと ひろがるよ` : text);
+      SFX.wrong(); o.say(G.tries >= 2 ? `${text}\n${T('wider')}` : text);
     }
     function cupIn() {
       const G = S.golf; G.st = 'in'; G.t = 0; G.bx = HOLE;
@@ -266,7 +283,7 @@
       const pts = S.holeInOne ? 10000 : 3000;
       S.score += pts; Wd.coin(HOLE - 10, GY - 40, String(pts));
       SFX.fanfare(); Wd.confetti(90); S.shake = 8;
-      o.say(S.holeInOne ? 'ホールインワン!!' : 'カップイン!!');
+      o.say(S.holeInOne ? T('hio') : T('cupIn'));
     }
 
     function stepFollowers() {
@@ -463,12 +480,12 @@
       lab(ctx, 50, 150, f, false);
       ctx.font = '10px "Press Start 2P"'; ctx.fillText(`× ${AGE}`, 150, 132);
       ctx.font = '11px "DotGothic16"'; ctx.fillStyle = '#f8b800';
-      ctx.fillText(`コインを ${AGE}まい あつめよう`, 120, 186);
+      ctx.fillText(T('cardCoins', AGE), 120, 186);
       ctx.fillStyle = '#fff'; ctx.font = '10px "DotGothic16"';
-      ctx.fillText('バイク → サーフィン → スノボ → ゴルフ', 120, 204);
-      ctx.fillText('？ブロックには かぞくが いるよ', 120, 220);
-      if ((f >> 2) % 2 === 0) { ctx.font = '11px "DotGothic16"'; ctx.fillText('タップで ジャンプ', 120, 262); }
-      ctx.font = '9px "DotGothic16"'; ctx.fillStyle = '#888'; ctx.fillText('ながおしで たかく とぶ', 120, 278);
+      ctx.fillText(T('cardRoute'), 120, 204);
+      ctx.fillText(T('cardBlocks'), 120, 220);
+      if ((f >> 2) % 2 === 0) { ctx.font = '11px "DotGothic16"'; ctx.fillText(T('tapJump'), 120, 262); }
+      ctx.font = '9px "DotGothic16"'; ctx.fillStyle = '#888'; ctx.fillText(T('holdHigh'), 120, 278);
       ctx.textAlign = 'left';
     }
     function banner(f) {
@@ -491,7 +508,7 @@
       const y = Math.round(S.dogY);
       if (k === 'surf') { r(ctx, x - 2, y - 2, 34, 2, '#f8e040'); r(ctx, x + 31, y - 2, 2, 1, '#f8e040'); }
       lab(ctx, x, y - (k === 'surf' ? 2 : 0), f, S.phase === 'play' && k !== 'surf');
-      if (S.magnet > 0 && (f % 8) < 4) { ctx.font = '8px "DotGothic16"'; ctx.fillStyle = '#fff'; ctx.fillText('ワン!', x + 20, y - 22); }
+      if (S.magnet > 0 && (f % 8) < 4) { ctx.font = '8px "DotGothic16"'; ctx.fillStyle = '#fff'; ctx.fillText(T('woof'), x + 20, y - 22); }
     }
 
     function draw(f) {
@@ -509,11 +526,11 @@
       L.coins.forEach((c) => { if (!c.got) { const x = c.x - S.camX; if (x > -10 && x < W + 4) coinSpr(Math.round(x), Math.round(c.y), f); } });
       L.enemies.forEach((e) => enemy(e, f));
       flagHole(GREEN + 90 - S.camX, f);
-      // 家族（後ろから）→ ラブ → お父さん
+      // 家族（後ろから）→ ライダー → お父さん
       [...S.followers].reverse().forEach((fw) => {
         const zk = zoneAt(S.camX + fw.x).k;
         const fy = fw.landed ? vehicle(zk, Math.round(fw.x), Math.round(fw.y), f, Math.abs(fw.y - GY) > 1) : Math.round(fw.y);
-        figure(ctx, Math.round(fw.x), fy, fw.sp, f, { walking: fw.landed && zk === 'golf' && S.phase === 'play' });
+        figure(ctx, Math.round(fw.x), fy, look(fw.sp, zk), f, { walking: fw.landed && zk === 'golf' && S.phase === 'play' });
       });
       drawDog(zoneAt(S.camX + DOGX).k, DOGX - 14, f);
       drawDad(zoneAt(S.camX + DADX).k, DADX, f);
@@ -522,7 +539,7 @@
       banner(f);
       if (S.phase === 'play' && S.t < 220 && S.t > 100 && (f >> 2) % 2 === 0) {
         ctx.textAlign = 'center'; ctx.font = '11px "DotGothic16"';
-        ctx.fillStyle = '#000'; ctx.fillText('タップで ジャンプ!', 121, 61); ctx.fillStyle = '#fff'; ctx.fillText('タップで ジャンプ!', 120, 60);
+        ctx.fillStyle = '#000'; ctx.fillText(T('tapJump'), 121, 61); ctx.fillStyle = '#fff'; ctx.fillText(T('tapJump'), 120, 60);
         ctx.textAlign = 'left';
       }
     }
@@ -538,12 +555,12 @@
       const hop = G.st === 'in';
       S.followers.forEach((fw, i) => {
         const h = hop ? [0, 3, 5, 6, 5, 3, 0][(f + i * 2) % 7] : 0;
-        figure(ctx, Math.round(fw.x), GY - 30 - h, fw.sp, f);
+        figure(ctx, Math.round(fw.x), GY - 30 - h, look(fw.sp, 'golf'), f);
       });
       flagHole(HOLE, f);
-      // ラブ
+      // ライダー
       lab(ctx, 6, GY, f, false);
-      if (hop && (f % 6) < 3) { ctx.font = '8px "DotGothic16"'; ctx.fillStyle = '#fff'; ctx.fillText('ワン!', 18, GY - 22); }
+      if (hop && (f % 6) < 3) { ctx.font = '8px "DotGothic16"'; ctx.fillStyle = '#fff'; ctx.fillText(T('woof'), 18, GY - 22); }
       // お父さん（キャップにポロシャツ）とクラブ
       const g = figure(ctx, TEE - 8, GY, dadLook('golf'), f);
       const hx = g.tx + g.torsoW + 1, hy = g.torsoTop + g.torsoH - 3;
@@ -564,7 +581,7 @@
         r(ctx, 40, 284, G.p * 160, 8, G.p >= a && G.p <= b ? '#f8f800' : '#f87800');
         r(ctx, 40 + G.p * 160 - 1, 280, 2, 16, '#fff');
         ctx.textAlign = 'center'; ctx.font = '10px "DotGothic16"';
-        if (G.st === 'aim' && (f >> 2) % 2 === 0) { ctx.fillStyle = '#000'; ctx.fillText('みどりで タップ!', 121, 275); ctx.fillStyle = '#fff'; ctx.fillText('みどりで タップ!', 120, 274); }
+        if (G.st === 'aim' && (f >> 2) % 2 === 0) { ctx.fillStyle = '#000'; ctx.fillText(T('tapGreen'), 121, 275); ctx.fillStyle = '#fff'; ctx.fillText(T('tapGreen'), 120, 274); }
         ctx.textAlign = 'left';
       }
       if (G.st === 'in') {
