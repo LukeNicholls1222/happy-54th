@@ -53,13 +53,12 @@
     let S, L;
 
     function level() {
-      const coins = [], obstacles = [], enemies = [];
+      const coins = [], obstacles = [];
       const lineC = (x, y, n) => { for (let i = 0; i < n; i++) coins.push({ x: x + i * 14, y }); };
       const arc = (cx) => { for (let i = 0; i < 5; i++) { const t = i / 4; coins.push({ x: cx - 36 + t * 72, y: GY - 44 - Math.sin(t * Math.PI) * 44 }); } };
       ZONES.slice(0, 3).forEach((z) => {
         const o = z.x;
         [300, 620].forEach((d) => { obstacles.push({ x: o + d, k: z.k, top: GY - 26 }); arc(o + d + 12); });
-        [200, 480, 760].forEach((d) => enemies.push({ x: o + d, k: z.k, vx: -0.45, alive: true, active: false, dead: 0 }));
         lineC(o + 110, GY - 18, 5);
       });
       lineC(2760, GY - 18, 9);
@@ -69,7 +68,7 @@
       const blockY = (x) => GY - BODY - zoneAt(x).vh - 36;
       return {
         coins: coins.map((c) => ({ ...c, got: false })),
-        obstacles, enemies,
+        obstacles,
         blocks: [
           { x: 430, key: 'mom' }, { x: 730, key: 'bone' }, { x: 1340, key: 'bro' },
           { x: 2230, key: 'boy' }, { x: 2520, key: 'sis' },
@@ -81,7 +80,7 @@
       L = level();
       S = {
         phase: 'card', t: 0, camX: 0, y: GY, vy: 0, ground: true, holding: false, coyote: 0, buf: 0,
-        coins: 0, score: 0, time: 300, tAcc: 0, inv: 0, magnet: 0, shake: 0, zone: ZONES[0], banner: 0,
+        coins: 0, score: 0, time: 300, tAcc: 0, magnet: 0, shake: 0, zone: ZONES[0], banner: 0,
         hist: [], followers: [], dogY: GY, sx: DADX, tally: 0,
         golf: null, holeInOne: false,
       };
@@ -116,20 +115,6 @@
       S.followers.push({ key: b.key, sp, x: b.x - S.camX + 8, y: b.y, vy: -3, landed: false });
       o.say(T('joined', nameOf(sp), line1(b.key)));
     }
-    function hurt() {
-      const lose = Math.min(2, S.coins);
-      S.coins -= lose; S.inv = 90; S.shake = 10;
-      SFX.hurt();
-      for (let i = 0; i < lose; i++) Wd.coin(DADX - 4 + i * 8, S.y - 30);
-      o.say(T('ouch', lose));
-    }
-    function kill(e) {
-      e.alive = false; e.dead = 24;
-      S.score += 100;
-      Wd.coin(e.x - S.camX, GY - 20, '100');
-      Wd.burst(e.x - S.camX + 6, GY - 6, 10);
-      SFX.stomp();
-    }
     function getCoin(c) {
       c.got = true; S.coins++; S.score += 200; SFX.coin();
       if (S.coins === AGE) { o.say(T('complete', AGE)); Wd.confetti(40); }
@@ -146,7 +131,6 @@
       else if (S.phase === 'golf') stepGolf();
       stepFollowers();
       L.blocks.forEach((b) => { if (b.bump > 0) b.bump--; });
-      L.enemies.forEach((e) => { if (e.dead > 0) e.dead--; });
     }
 
     function stepPlay() {
@@ -199,26 +183,13 @@
         if (c.x + 6 > wx - 9 && c.x < wx + 9 && c.y + 8 > S.y - HEAD && c.y < S.y) getCoin(c);
       });
 
-      L.enemies.forEach((e) => {
-        if (!e.alive) return;
-        if (!e.active && e.x - S.camX < W + 20) e.active = true;
-        if (!e.active) return;
-        e.x += e.vx;
-        L.obstacles.forEach((p) => { if (e.x + 12 > p.x && e.x < p.x + 24) { e.vx = -e.vx; e.x += e.vx * 3; } });
-        if (wx + 8 > e.x && wx - 8 < e.x + 12 && S.y > GY - 10 && S.y - HEAD < GY) {
-          if (S.vy > 0 && prevFeet <= GY - 6) { kill(e); S.vy = S.holding ? -6 : -4.5; S.shake = 4; }
-          else if (S.inv <= 0) hurt();
-        }
-      });
-
-      if (S.inv > 0) S.inv--;
       if (S.magnet > 0) { S.magnet--; if (S.magnet % 90 === 0 && S.magnet) SFX.bark(); }
       if (S.coyote > 0) S.coyote--;
       if (S.buf > 0) S.buf--;
       if (++S.tAcc >= 24) { S.tAcc = 0; if (S.time > 0) S.time--; }
       S.hist.push(S.y); if (S.hist.length > 120) S.hist.shift();
 
-      if (wx >= GREEN) { S.phase = 'arrive'; S.t = 0; S.magnet = 0; S.inv = 0; BGM.stop(); SFX.clear(); o.say(T('green')); }
+      if (wx >= GREEN) { S.phase = 'arrive'; S.t = 0; S.magnet = 0; BGM.stop(); SFX.clear(); o.say(T('green')); }
     }
 
     // グリーンに着いたら残りタイムを点数に変えて、ゴルフへ
@@ -402,31 +373,6 @@
         r(ctx, x + 12, t + 15, 1, 1, '#000'); r(ctx, x + 12, t + 19, 1, 1, '#000');
       }
     }
-    function enemy(e, f) {
-      const x = Math.round(e.x - S.camX); if (x < -20 || x > W + 6) return;
-      if (!e.alive) { if (e.dead > 0) r(ctx, x, GY - 3, 12, 3, { mtb: '#6a3a1a', surf: '#d82800', snow: '#fff' }[e.k]); return; }
-      const w = (f % 4) < 2, L2 = e.vx < 0;
-      if (e.k === 'mtb') { // いのしし
-        r(ctx, x + 2, GY - 9, 10, 6, '#6a3a1a'); r(ctx, x + 3, GY - 10, 8, 1, '#4a2a10');
-        const hx = L2 ? x - 2 : x + 10; r(ctx, hx, GY - 8, 4, 4, '#6a3a1a'); r(ctx, L2 ? hx - 1 : hx + 4, GY - 6, 1, 2, '#caa080'); r(ctx, L2 ? hx : hx + 3, GY - 5, 1, 1, '#fff');
-        r(ctx, L2 ? hx + 1 : hx + 2, GY - 8, 1, 1, '#000');
-        r(ctx, x + (w ? 3 : 4), GY - 3, 2, 3, '#3a2010'); r(ctx, x + (w ? 9 : 8), GY - 3, 2, 3, '#3a2010');
-      }
-      if (e.k === 'surf') { // かに
-        r(ctx, x + 1, GY - 7, 10, 5, '#e83818'); r(ctx, x + 2, GY - 8, 8, 1, '#e83818');
-        r(ctx, x + 3, GY - 11, 1, 3, '#e83818'); r(ctx, x + 8, GY - 11, 1, 3, '#e83818');
-        r(ctx, x + 3, GY - 12, 1, 1, '#000'); r(ctx, x + 8, GY - 12, 1, 1, '#000');
-        const cl = w ? 0 : 1;
-        r(ctx, x - 2, GY - 10 + cl, 3, 3, '#e83818'); r(ctx, x + 11, GY - 10 + cl, 3, 3, '#e83818');
-        [1, 4, 7, 10].forEach((o2, k) => r(ctx, x + o2, GY - 2, 1, 2 - ((k + (w ? 1 : 0)) % 2), '#a02000'));
-      }
-      if (e.k === 'snow') { // ころがる雪玉
-        circle(ctx, x + 6, GY - 6, 5, '#a8b8d0'); for (let rr = 0; rr < 5; rr++) circle(ctx, x + 6, GY - 6, rr, '#fff');
-        const a = f * 0.5; r(ctx, x + 6 + Math.cos(a) * 3, GY - 6 + Math.sin(a) * 3, 2, 1, '#c8d8f0');
-        r(ctx, x + 3, GY - 8, 2, 1, '#000'); r(ctx, x + 7, GY - 8, 2, 1, '#000'); r(ctx, x + 4, GY - 4, 4, 1, '#333');
-        if (w) r(ctx, x + (L2 ? 12 : -2), GY - 2, 2, 1, '#fff');
-      }
-    }
     // 乗り物。足をのせる高さを返す
     function vehicle(k, x, y, f, air) {
       if (k === 'mtb') {
@@ -498,7 +444,6 @@
     }
 
     function drawDad(k, x, f) {
-      if (S.inv > 0 && (S.inv >> 2) % 2) return null;
       const air = !S.ground && S.phase === 'play';
       const fy = vehicle(k, x, Math.round(S.y), f, air);
       const walking = k === 'golf' && S.phase === 'play' && S.ground;
@@ -524,7 +469,6 @@
         Wd.qblock(ctx, x, b.y - (b.bump > 4 ? 8 - b.bump : b.bump > 0 ? b.bump : 0), f, b.used);
       });
       L.coins.forEach((c) => { if (!c.got) { const x = c.x - S.camX; if (x > -10 && x < W + 4) coinSpr(Math.round(x), Math.round(c.y), f); } });
-      L.enemies.forEach((e) => enemy(e, f));
       flagHole(GREEN + 90 - S.camX, f);
       // 家族（後ろから）→ ライダー → お父さん
       [...S.followers].reverse().forEach((fw) => {
