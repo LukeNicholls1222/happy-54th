@@ -1,10 +1,10 @@
-// 日本語 / 英語。?lang=en で英語、タイトルのボタンで切り替え、選んだ言語は覚えておく。
+// 英語 / 日本語。最初は英語で、?lang=ja で日本語、タイトルのボタンで切り替え、選んだ言語は覚えておく。
 (function () {
   const q = new URLSearchParams(location.search).get('lang');
   let saved = null;
   try { saved = localStorage.getItem('lang'); } catch (e) { /* 使えない環境もある */ }
-  const nav = (navigator.language || 'ja').toLowerCase().startsWith('ja') ? 'ja' : 'en';
-  window.LANG = q === 'en' || q === 'ja' ? q : saved === 'en' || saved === 'ja' ? saved : nav;
+  // 最初は英語。?lang=ja か、タイトルのボタンで日本語にできる
+  window.LANG = q === 'en' || q === 'ja' ? q : saved === 'en' || saved === 'ja' ? saved : 'en';
 
   const th = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 

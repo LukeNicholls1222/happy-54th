@@ -96,7 +96,7 @@
       if (S.ground || S.coyote > 0) doJump(); else S.buf = 8;
     }
     function release() { S.holding = false; if (S.phase === 'play' && S.vy < -2.5) S.vy = -2.5; }
-    function begin() { S.phase = 'play'; S.t = 0; S.banner = 100; BGM.start(); }
+    function begin() { S.phase = 'play'; S.t = 0; S.banner = 100; BGM.start('mtb'); }
 
     // ---------- 出来事 ----------
     function hitBlock(b) {
@@ -137,7 +137,7 @@
       const wx0 = S.camX + DADX;
       const z = zoneAt(wx0);
       if (z !== S.zone) {
-        S.zone = z; S.banner = 100; SFX.up();
+        S.zone = z; S.banner = 100; SFX.up(); BGM.style = z.k;
         Wd.burst(DADX, S.y - 20, 24);
         o.say(T('zone')[z.k]);
       }
@@ -213,6 +213,7 @@
     }
     function startGolf() {
       S.phase = 'golf'; S.t = 0; S.y = GY;
+      BGM.start('golf');
       S.golf = { st: 'aim', t: 0, p: 0, tries: 0, bx: TEE + 6, v: 0, drop: 0, msg: '' };
       o.say(T('putt'));
     }
@@ -250,6 +251,7 @@
     }
     function cupIn() {
       const G = S.golf; G.st = 'in'; G.t = 0; G.bx = HOLE;
+      BGM.stop();
       S.holeInOne = G.tries === 1;
       const pts = S.holeInOne ? 10000 : 3000;
       S.score += pts; Wd.coin(HOLE - 10, GY - 40, String(pts));

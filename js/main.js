@@ -56,19 +56,46 @@
     [392, .75, 131], [392, .25, 0], [784, 1, 131], [659, 1, 131], [523, 1, 87], [494, 1, 87], [440, 2, 87],
     [698, .75, 87], [698, .25, 0], [659, 1, 131], [523, 1, 131], [587, 1, 98], [523, 2, 131], [0, 1, 0],
   ];
+  // 同じ曲を場所ごとにアレンジを変えて流す。切り替えは次の音から（曲は途切れない）
+  //   mtb : 少し速め、ベースを8分で刻んで走る感じ
+  //   surf: ゆったり、メロディにエコー、ベースはルートと5度を行き来する
+  //   snow: 1オクターブ上の鈴っぽい音に、きらきらした高音を足す
+  //   golf: いちばん遅く、やわらかいサイン波で静かに
+  const STYLE = {
+    mtb: { beat: 0.21 },
+    surf: { beat: 0.25 },
+    snow: { beat: 0.23 },
+    golf: { beat: 0.30 },
+  };
   const BGM = {
-    on: false, fast: false, i: 0, t: 0,
-    start() { ensureAudio(); if (!ac) return; this.on = true; this.fast = false; this.i = 0; this.t = ac.currentTime + 0.1; },
+    on: false, style: 'mtb', i: 0, t: 0,
+    start(style) { ensureAudio(); if (!ac) return; this.on = true; if (style) this.style = style; this.i = 0; this.t = ac.currentTime + 0.1; },
     stop() { this.on = false; },
     pump() {
       if (!this.on || !ac) return;
-      const beat = this.fast ? 0.16 : 0.24;
       if (this.t < ac.currentTime) this.t = ac.currentTime + 0.05; // 裏に回って戻ったとき
       while (this.t < ac.currentTime + 0.3) {
+        const st = this.style, beat = STYLE[st].beat;
         const [n, d, b] = SONG[this.i % SONG.length];
-        tone(n, this.t, d * beat * 0.85, 0.035);
-        tone(b, this.t, Math.min(d, 1) * beat * 0.8, 0.06, 'triangle');
-        this.t += d * beat; this.i++;
+        const t = this.t, len = d * beat;
+        if (st === 'mtb') {
+          tone(n, t, len * 0.8, 0.035);
+          for (let k = 0; k < Math.max(1, Math.round(d * 2)); k++) tone(b, t + k * beat / 2, beat * 0.4, 0.055, 'triangle');
+        } else if (st === 'surf') {
+          tone(n, t, len * 0.85, 0.03);
+          tone(n, t + beat * 0.75, len * 0.6, 0.011);                 // エコー
+          tone(b, t, beat * 0.45, 0.06, 'triangle');
+          if (d >= 1) tone(b * 1.5, t + beat / 2, beat * 0.4, 0.045, 'triangle');
+        } else if (st === 'snow') {
+          tone(n * 2, t, Math.min(len, beat) * 0.5, 0.05, 'triangle');  // 鈴
+          tone(n, t, len * 0.8, 0.012);
+          if (this.i % 2 === 0) tone(n * 4, t + beat / 2, beat * 0.2, 0.012, 'triangle');
+          tone(b, t, len * 0.9, 0.045, 'triangle');
+        } else {
+          tone(n, t, len * 0.95, 0.07, 'sine');
+          if (d >= 1) tone(b, t, len * 0.95, 0.06, 'sine');
+        }
+        this.t += len; this.i++;
       }
     },
   };
