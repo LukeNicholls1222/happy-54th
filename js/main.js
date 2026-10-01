@@ -44,6 +44,12 @@
     flag: () => play([1047, 988, 880, 784, 698, 659, 587, 523], 0.05),
     clear: () => play([523, 659, 784, 1047, 0, 880, 1047, 0, 1319], 0.12),
     tick: () => play([1568], 0.02),
+    // ラスボス用
+    rumble: () => { ensureAudio(); if (!ac) return; const t = ac.currentTime; for (let i = 0; i < 8; i++) tone(55 + (i % 2) * 6, t + i * 0.06, 0.09, 0.05, 'sawtooth'); },
+    alarm: () => play([988, 0, 988, 0], 0.09),
+    thunder: () => { ensureAudio(); if (!ac) return; const t = ac.currentTime; for (let i = 0; i < 10; i++) tone(90 - i * 6, t + i * 0.03, 0.12, 0.06, 'sawtooth'); },
+    thud: () => { ensureAudio(); if (!ac) return; const t = ac.currentTime; tone(70, t, 0.25, 0.09); tone(45, t + 0.05, 0.35, 0.09, 'triangle'); },
+    toss: () => play([300, 450], 0.04),
     bark: () => play([740, 494], 0.06),
     swing: () => { ensureAudio(); if (!ac) return; const t = ac.currentTime; tone(1800, t, 0.05, 0.05); tone(900, t + 0.03, 0.08, 0.03, 'triangle'); },
   };
@@ -66,7 +72,16 @@
     surf: { beat: 0.25 },
     snow: { beat: 0.23 },
     golf: { beat: 0.30 },
+    boss: { beat: 0.14 },
   };
+  // ラスボスの曲（ハッピーバースデーではなく、短調で不穏なくり返し）
+  // [メロディ, 8分の長さ, ベース]
+  const BOSS = [
+    [330, 1, 82], [0, 1, 82], [311, 1, 165], [330, 1, 82], [0, 1, 147], [392, 1, 82], [370, 1, 131], [349, 1, 123],
+    [330, 1, 82], [0, 1, 82], [311, 1, 165], [330, 1, 82], [0, 1, 147], [494, 1, 82], [466, 1, 131], [440, 1, 123],
+    [262, 1, 65], [0, 1, 65], [247, 1, 131], [262, 1, 65], [0, 1, 117], [311, 1, 65], [294, 1, 104], [277, 1, 98],
+    [247, 1, 62], [0, 1, 62], [233, 1, 123], [247, 1, 62], [294, 1, 110], [330, 1, 62], [370, 1, 117], [392, 1, 123],
+  ];
   const BGM = {
     on: false, style: 'mtb', i: 0, t: 0,
     start(style) { ensureAudio(); if (!ac) return; this.on = true; if (style) this.style = style; this.i = 0; this.t = ac.currentTime + 0.1; },
@@ -76,9 +91,13 @@
       if (this.t < ac.currentTime) this.t = ac.currentTime + 0.05; // 裏に回って戻ったとき
       while (this.t < ac.currentTime + 0.3) {
         const st = this.style, beat = STYLE[st].beat;
-        const [n, d, b] = SONG[this.i % SONG.length];
+        const [n, d, b] = (st === 'boss' ? BOSS : SONG)[this.i % (st === 'boss' ? BOSS.length : SONG.length)];
         const t = this.t, len = d * beat;
-        if (st === 'mtb') {
+        if (st === 'boss') {
+          tone(n, t, len * 0.7, 0.03);
+          tone(b, t, len * 0.8, 0.07, 'triangle');
+          if (this.i % 8 === 0) tone(b / 2, t, beat * 2, 0.05, 'sawtooth');
+        } else if (st === 'mtb') {
           tone(n, t, len * 0.8, 0.035);
           for (let k = 0; k < Math.max(1, Math.round(d * 2)); k++) tone(b, t + k * beat / 2, beat * 0.4, 0.055, 'triangle');
         } else if (st === 'surf') {
@@ -182,9 +201,9 @@
   let result = null, runAcc = 0, sayTimer = 0;
   const RUN = makeRun({
     ctx, Wd, SFX, CFG, BGM,
-    say(text) {
+    say(text, ms = 2600) {
       const el = $('runmsg'); el.textContent = text; el.classList.add('show');
-      clearTimeout(sayTimer); sayTimer = setTimeout(() => el.classList.remove('show'), 2600);
+      clearTimeout(sayTimer); sayTimer = setTimeout(() => el.classList.remove('show'), ms);
     },
     clear(on) { $('clear').classList.toggle('hidden', !on); },
     onClear(res) {
@@ -358,6 +377,7 @@
   if (jump) {
     Object.values(actors).forEach((a) => { a.shown = true; });
     if (jump === 'run') startRun();
+    if (jump === 'boss') { startRun(); RUN.bossOnly(); }
     if (jump === 'candles') startCandles();
     if (jump === 'quiz') startQuiz();
     if (jump === 'end') startEnd();
