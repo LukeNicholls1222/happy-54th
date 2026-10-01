@@ -94,7 +94,7 @@ body { font-family: 'DotGothic16', 'Press Start 2P', monospace; color: var(--pap
 .counter { position: absolute; bottom: 14px; font-size: 9px; text-shadow: 1px 1px 0 #000; }
 
 /* ---------- 最後 ---------- */
-.hbd { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--gold); text-align: center; margin-bottom: 4px !important; }
+.hbd { font-family: 'Press Start 2P', monospace; font-size: 9px; line-height: 1.6; color: var(--gold); text-align: center; margin-bottom: 4px !important; }
 #message { font-size: 10px; line-height: 1.6; }
 #message p { margin: 0; min-height: 1.2em; }
 html[lang=en] #message { font-size: 9px; line-height: 1.5; }
